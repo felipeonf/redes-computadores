@@ -1,62 +1,58 @@
 import socket
-import threading, wave, pickle, struct
+import pyaudio
+import wave
+import os
+from _thread import *
 
 
+def clientthread(conn, address):
+    print("<", address, ">  connected ")
+    while True:
 
+        resource = os.listdir("./resource")
+        ss = "\n\n\n\n \t\t Media Player \n"
+        for i in range(len(resource)):
+            if i % 2 == 0:
+                ss += "\n"
+            resource[i] = resource[i][:-4]
+            ss = ss + "\t" + resource[i] + "\t"
+        conn.send(ss.encode())
+        x = conn.recv(1024).decode()
+        for i in resource:
+            if x.lower() == i.lower():
+                print("Musica encontrada")
+                conn.send("1".encode())
+                x = i
+                break
+        else:
+            conn.send("0".encode())
+            continue
+        x = "./resource/" + x + ".wav"
+        print(x)
+        wf = wave.open(x, 'rb')
 
+        p = pyaudio.PyAudio()
 
-def set_server(port):
-    socketServer = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    name_server = socket.gethostname()
-    ip_server = socket.gethostbyname(name_server)
-    socketServer.bind((ip_server, port))
-
-    print(socketServer)
-    print(f"Servidor sendo escutado no endereço {ip_server} e na porta {port}")
-    return socketServer
-
-
-def audio_stream(port):
-    socketServer = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    name_server = socket.gethostname()
-    ip_server = socket.gethostbyname(name_server)
-    socketServer.bind((ip_server, port))
-
-    print(socketServer)
-    print(f"Servidor sendo escutado no endereço {ip_server} e na porta {port}")
-    try:
-        socketServer.listen(1)
         CHUNK = 1024
-        wav_file = wave.open('beep-01a.wav', 'rb')
+        FORMAT = pyaudio.paInt16
+        CHANNELS = 2
+        RATE = 44100
+        stream = p.open(format=FORMAT,
+                        channels=CHANNELS,
+                        rate=RATE,
+                        output=True,
+                        frames_per_buffer=CHUNK)
 
-        # play_instance = pyaudio.PyAudio()
-
-        # stream = play_instance.open(format=play_instance.get_format_from_width(wav_file.getsampwidth()),
-        #             channels=wav_file.getnchannels(),
-        #             rate=wav_file.getframerate(),
-        #             input=True,
-        #             frames_per_buffer=CHUNK)
-        
-        client_socket, addr = socketServer.accept()
-        data = None
-
-        while True:
-            if client_socket:
-                while True:
-                    data = wav_file.readframes(CHUNK)
-                    a = pickle.dumps(data)
-                    message = struct.pack("Q",len(a))+a
-                    client_socket.sendall(message)
-
-    except Exception as error:
-        print("Ocorreu um erro", error)
+        data = 1
+        while data:
+            data = wf.readframes(CHUNK)
+            conn.send(data)
 
 
-
-
-if __name__ == "__main__":
-    # server = set_server(3000)
-    t1 = threading.Thread(target=audio_stream(3000), args=())
-    t1.start()
-
-
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+server_socket.bind(("", 5544))
+server_socket.listen(10)
+while True:
+    conn, address = server_socket.accept()
+    start_new_thread(clientthread, (conn, address))
