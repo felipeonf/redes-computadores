@@ -1,58 +1,47 @@
 import socket
-import pyaudio
-import wave
+import threading
 import os
-from _thread import *
 
+def handle_client(client_socket, client_address):
+    print(f"Conexão estabelecida com o cliente {client_address}")
 
-def clientthread(conn, address):
-    print("<", address, ">  connected ")
+    # Recuperar a lista de músicas disponíveis no servidor
+    songs = os.listdir("songs")
+    songs = [song for song in songs if song.endswith(".mp3")]
+    songs_str = "\n".join(songs)
+    client_socket.send(songs_str.encode())
+
+    # Receber a música escolhida pelo cliente
+    song_choice = client_socket.recv(1024).decode()
+
+    # Verificar se a música está presente no cache local
+    if os.path.exists(f"cache/{song_choice}"):
+        client_socket.send("OK".encode())
+    else:
+        client_socket.send("NOT FOUND".encode())
+
+    # Enviar a música para o cliente em blocos de 30 segundos
+    if os.path.exists(f"songs/{song_choice}"):
+        with open(f"songs/{song_choice}", "rb") as song_file:
+            data = song_file.read(1024)
+            while data:
+                client_socket.send(data)
+                data = song_file.read(1024)
+
+    # Fechar a conexão com o cliente
+    client_socket.close()
+    print(f"Conexão encerrada com o cliente {client_address}")
+
+def start_server():
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind(("127.0.0.1", 8000))
+    server_socket.listen(5)
+
+    print("Servidor iniciado. Aguardando conexões...")
+
     while True:
+        client_socket, client_address = server_socket.accept()
+        client_thread = threading.Thread(target=handle_client, args=(client_socket, client_address))
+        client_thread.start()
 
-        resource = os.listdir("./resource")
-        ss = "\n\n\n\n \t\t Media Player \n"
-        for i in range(len(resource)):
-            if i % 2 == 0:
-                ss += "\n"
-            resource[i] = resource[i][:-4]
-            ss = ss + "\t" + resource[i] + "\t"
-        conn.send(ss.encode())
-        x = conn.recv(1024).decode()
-        for i in resource:
-            if x.lower() == i.lower():
-                print("Musica encontrada")
-                conn.send("1".encode())
-                x = i
-                break
-        else:
-            conn.send("0".encode())
-            continue
-        x = "./resource/" + x + ".wav"
-        print(x)
-        wf = wave.open(x, 'rb')
-
-        p = pyaudio.PyAudio()
-
-        CHUNK = 1024
-        FORMAT = pyaudio.paInt16
-        CHANNELS = 2
-        RATE = 44100
-        stream = p.open(format=FORMAT,
-                        channels=CHANNELS,
-                        rate=RATE,
-                        output=True,
-                        frames_per_buffer=CHUNK)
-
-        data = 1
-        while data:
-            data = wf.readframes(CHUNK)
-            conn.send(data)
-
-
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-server_socket.bind(("", 5544))
-server_socket.listen(10)
-while True:
-    conn, address = server_socket.accept()
-    start_new_thread(clientthread, (conn, address))
+start_server()

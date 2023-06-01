@@ -1,41 +1,53 @@
 import socket
+import threading
 import pyaudio
-import wave
-import sys
+import os
 
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-client_socket.connect(("127.0.0.1", 5544))
+def receive_audio(client_socket):
+    chunk_size = 1024
+    p = pyaudio.PyAudio()
+    stream = p.open(format=p.get_format_from_width(2),
+                    channels=2,
+                    rate=44100,
+                    output=True)
 
-p = pyaudio.PyAudio()
-CHUNK = 1024
-FORMAT = pyaudio.paInt16
-CHANNELS = 2
-RATE = 44100
-RECORD_SECONDS = 3
-stream = p.open(format=FORMAT,
-                channels=CHANNELS,
-                rate=RATE,
-                output=True,
-                frames_per_buffer=CHUNK)
-while True:
-	res = client_socket.recv(1024).decode()
-	print(res)
-	print("\n")
-	sys.stdout.flush()
-	x = input("Digite a música que deseja escutar : ")
-	client_socket.send(x.encode())
-	ch=int(client_socket.recv(1024).decode())
-	if ch==0:
-		print("Escolha outro número")
-		continue
-	if ch==1:
-		print(f'Tocando música: {x}')
-		data= "1"
-		while data != "":
-			data = client_socket.recv(1024)
-			stream.write(data)
+    while True:
+        data = client_socket.recv(chunk_size)
+        if not data:
+            break
+        stream.write(data)
 
-stream.stop_stream()
-stream.close()
-p.terminate()
+    stream.stop_stream()
+    stream.close()
+
+def start_client():
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_socket.connect(("127.0.0.1", 8000))
+
+    # Recuperar a lista de músicas do servidor
+    songs_list = client_socket.recv(1024).decode()
+    print("Lista de músicas disponíveis:")
+    print(songs_list)
+
+    # Escolher uma música para reproduzir
+    song_choice = input("Digite o nome da música que deseja reproduzir: ")
+    client_socket.send(song_choice.encode())
+
+    # Verificar se a música está no cache local
+    cache_status = client_socket.recv(1024).decode()
+    if cache_status == "OK":
+        print("Música encontrada no cache local.")
+    elif cache_status == "NOT FOUND":
+        print("Música não encontrada no cache local. Buscando no servidor...")
+
+    # Iniciar a reprodução da música em uma thread separada
+    audio_thread = threading.Thread(target=receive_audio, args=(client_socket,))
+    audio_thread.start()
+
+    # Aguardar a reprodução da música
+    audio_thread.join()
+
+    # Fechar a conexão com o servidor
+    client_socket.close()
+
+start_client()
