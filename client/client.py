@@ -3,12 +3,15 @@ import threading
 import pyaudio
 import os
 
+
 def play_audio(client_socket, song_choice):
     chunk_size = 1024
+    
     p = pyaudio.PyAudio()
-    stream = p.open(format=p.get_format_from_width(3),
+    stream = p.open(format=p.get_format_from_width(2),
                     channels=2,
                     rate=44100,
+                    frames_per_buffer=1024,
                     output=True)
     data_of_file = b""
     while True:
@@ -34,23 +37,30 @@ def start_client():
     songs_cache = os.listdir('cache') 
 
     # Recuperar a lista de músicas do servidor
-    songs_list = client_socket.recv(1024).decode()
+    songs_list = client_socket.recv(2048).decode()
     print("Lista de músicas disponíveis:")
     print(songs_list)
 
     # Escolher uma música para reproduzir
     song_choice = input("Digite o nome da música que deseja reproduzir: ")
     if song_choice in songs_cache:
+        chunk_size = 1024
         p = pyaudio.PyAudio()
         stream = p.open(format=p.get_format_from_width(3),
                     channels=2,
                     rate=44100,
                     output=True)
-        while True:
-            data = open(f'cache/{song_choice}', "rb")
-            if not data:
-                break
-            stream.write(data)
+        print("Reproduzindo do cache!")
+        with open(f'cache/{song_choice}', 'rb') as file:
+            while True:
+                
+                data = file.read(chunk_size)
+                buffer_size = len(data)  # Tamanho atual do buffer
+                print(f"Tamanho do buffer: {buffer_size}")
+                if not data:
+                    break
+                stream.write(data)
+        
     else:
         file = open(f'cache/{song_choice}', 'wb')
         client_socket.send(song_choice.encode())
