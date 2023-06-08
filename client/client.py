@@ -16,6 +16,7 @@ def receive_audio(client_socket):
         if not data:
             break
         stream.write(data)
+        
 
     stream.stop_stream()
     stream.close()
@@ -25,6 +26,7 @@ def start_client():
     client_socket.connect(("127.0.0.1", 10000))
     if not os.path.isdir("cache"):
         os.makedirs("cache")
+    songs_cache = os.listdir('cache') 
 
     # Recuperar a lista de músicas do servidor
     songs_list = client_socket.recv(1024).decode()
@@ -33,14 +35,12 @@ def start_client():
 
     # Escolher uma música para reproduzir
     song_choice = input("Digite o nome da música que deseja reproduzir: ")
+    if song_choice in songs_cache:
+        pass
+    file = open(f'cache/{song_choice}', 'wb')
     client_socket.send(song_choice.encode())
 
-    # Verificar se a música está no cache local
-    # cache_status = client_socket.recv(1024).decode()
-    # if cache_status == "OK":
-    #     print("Música encontrada no cache local.")
-    # elif cache_status == "NOT FOUND":
-    #     print("Música não encontrada no cache local. Buscando no servidor...")
+
 
     # Iniciar a reprodução da música em uma thread separada
     audio_thread = threading.Thread(target=receive_audio, args=(client_socket,))
