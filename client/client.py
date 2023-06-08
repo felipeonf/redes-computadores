@@ -3,23 +3,28 @@ import threading
 import pyaudio
 import os
 
-def receive_audio(client_socket):
+def play_audio(client_socket, song_choice):
     chunk_size = 1024
     p = pyaudio.PyAudio()
-    stream = p.open(format=p.get_format_from_width(2),
+    stream = p.open(format=p.get_format_from_width(3),
                     channels=2,
                     rate=44100,
                     output=True)
-
+    data_of_file = b""
     while True:
         data = client_socket.recv(chunk_size)
+        data_of_file += data
         if not data:
             break
         stream.write(data)
-        
 
+        
+    file_to_copy = open(f'cache/{song_choice}', 'wb')
+    file_to_copy.write(data_of_file)
+    file_to_copy.close()
     stream.stop_stream()
     stream.close()
+
 
 def start_client():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -36,20 +41,29 @@ def start_client():
     # Escolher uma música para reproduzir
     song_choice = input("Digite o nome da música que deseja reproduzir: ")
     if song_choice in songs_cache:
-        pass
-    file = open(f'cache/{song_choice}', 'wb')
-    client_socket.send(song_choice.encode())
+        p = pyaudio.PyAudio()
+        stream = p.open(format=p.get_format_from_width(3),
+                    channels=2,
+                    rate=44100,
+                    output=True)
+        while True:
+            data = open(f'cache/{song_choice}', "rb")
+            if not data:
+                break
+            stream.write(data)
+    else:
+        file = open(f'cache/{song_choice}', 'wb')
+        client_socket.send(song_choice.encode())
+        file.close()
 
+        # Iniciar a reprodução da música em uma thread separada
+        audio_thread = threading.Thread(target=play_audio, args=(client_socket, song_choice))
+        audio_thread.start()
 
+        # Aguardar a reprodução da música
+        audio_thread.join()
 
-    # Iniciar a reprodução da música em uma thread separada
-    audio_thread = threading.Thread(target=receive_audio, args=(client_socket,))
-    audio_thread.start()
-
-    # Aguardar a reprodução da música
-    audio_thread.join()
-
-    # Fechar a conexão com o servidor
-    client_socket.close()
+        # Fechar a conexão com o servidor
+        client_socket.close()
 
 start_client()
