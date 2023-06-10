@@ -1,0 +1,68 @@
+import socket
+import sounddevice as sd
+
+# Configurações do cliente
+HOST = '127.0.0.1'  # Endereço IP do servidor
+PORT = 5555  # Porta de conexão
+
+# Variável para controlar o estado de reprodução
+is_playing = True
+
+def print_music_list(music_list):
+    print('Music List:')
+    print('-' * 20)
+    for i, music_name in enumerate(music_list):
+        print(f'{i + 1}. {music_name}')
+    print('-' * 20)
+
+# Resto do código...
+
+def play_music(music_name):
+    global is_playing  # Referenciar a variável global
+
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_socket.connect((HOST, PORT))
+
+    client_socket.send(f'PLAY {music_name}'.encode())
+    response = client_socket.recv(1024).decode()
+
+    if response == 'FOUND':
+        print('Reproduzindo música:', music_name)
+        stream = sd.OutputStream(channels=2)
+
+        def callback(outdata, frames, time, status):
+            nonlocal is_playing  # Referenciar a variável no escopo da função
+
+            if not is_playing:
+                return  # Se a reprodução está pausada, retorna sem enviar dados
+
+            audio_data = client_socket.recv(frames * 4)  # 4 bytes por amostra float32
+            outdata[:] = sd.float32_to_int16(audio_data.reshape(frames, 2))
+
+        with stream:
+            while True:
+                callback(None, stream.frames, None, None)
+                if stream.stopped:
+                    break
+
+    elif response == 'NOT_FOUND':
+        print('Música não encontrada:', music_name)
+
+    client_socket.close()
+
+def pause_music():
+    global is_playing  # Referenciar a variável global
+    is_playing = False
+
+def resume_music():
+    global is_playing  # Referenciar a variável global
+    is_playing = True
+
+# Resto do código...
+
+# Exemplo de uso dos comandos de pausa e retomada
+# Para pausar a música:
+pause_music()
+
+# Para retomar a reprodução:
+resume_music()
