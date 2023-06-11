@@ -3,7 +3,6 @@ import threading
 import pyaudio
 import os
 
-
 def play_audio(client_socket, song_choice):
     chunk_size = 1024
     
@@ -11,8 +10,9 @@ def play_audio(client_socket, song_choice):
     stream = p.open(format=p.get_format_from_width(2),
                     channels=2,
                     rate=44100,
-                    frames_per_buffer=1024,
+                    frames_per_buffer=4096,
                     output=True)
+    
     data_of_file = b""
     while True:
         data = client_socket.recv(chunk_size)
@@ -20,11 +20,12 @@ def play_audio(client_socket, song_choice):
         if not data:
             break
         stream.write(data)
-
-        
-    file_to_copy = open(f'cache/{song_choice}', 'wb')
-    file_to_copy.write(data_of_file)
-    file_to_copy.close()
+    
+    if len(data_of_file) != 0:
+        file = open(f'cache/{song_choice}', 'wb')
+        len(data_of_file)
+        file.write(data_of_file)
+        file.close()
     stream.stop_stream()
     stream.close()
 
@@ -53,7 +54,6 @@ def start_client():
         print("Reproduzindo do cache!")
         with open(f'cache/{song_choice}', 'rb') as file:
             while True:
-                
                 data = file.read(chunk_size)
                 buffer_size = len(data)  # Tamanho atual do buffer
                 print(f"Tamanho do buffer: {buffer_size}")
@@ -62,9 +62,7 @@ def start_client():
                 stream.write(data)
         
     else:
-        file = open(f'cache/{song_choice}', 'wb')
         client_socket.send(song_choice.encode())
-        file.close()
 
         # Iniciar a reprodução da música em uma thread separada
         audio_thread = threading.Thread(target=play_audio, args=(client_socket, song_choice))
