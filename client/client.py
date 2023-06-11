@@ -2,15 +2,17 @@ import socket
 import threading
 import pyaudio
 import os
+import wave
 
 def play_audio(client_socket, song_choice):
     chunk_size = 1024
+    FORMAT = pyaudio.paInt16
     
     p = pyaudio.PyAudio()
-    stream = p.open(format=p.get_format_from_width(2),
+    stream = p.open(format=FORMAT,
                     channels=2,
                     rate=44100,
-                    frames_per_buffer=4096,
+                    frames_per_buffer=1024,
                     output=True)
     
     data_of_file = b""
@@ -63,15 +65,7 @@ def start_client():
         
     else:
         client_socket.send(song_choice.encode())
-
-        # Iniciar a reprodução da música em uma thread separada
-        audio_thread = threading.Thread(target=play_audio, args=(client_socket, song_choice))
-        audio_thread.start()
-
-        # Aguardar a reprodução da música
-        audio_thread.join()
-
-        # Fechar a conexão com o servidor
+        play_audio(client_socket, song_choice)
         client_socket.close()
 
 start_client()
