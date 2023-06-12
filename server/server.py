@@ -26,13 +26,13 @@ def play_music_server(client_socket, song_choice):
 
     if os.path.exists(f"resource/{song_choice}"):
          with wave.open(f"resource/{song_choice}", "rb") as song_file:
-            data = 1
+            data = song_file.readframes(BUFFER_SIZE)
             while data != b'':
-                data = song_file.readframes(BUFFER_SIZE)
                 client_socket.send(data)
-            print(data)
-            client_socket.send(data)
-
+                data = song_file.readframes(BUFFER_SIZE)
+            song_file.close()
+            end_message = "\nnn".encode()
+            client_socket.send(end_message)
 
 
 
