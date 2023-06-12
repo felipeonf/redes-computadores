@@ -2,7 +2,6 @@ import socket
 import threading
 import pyaudio
 import os
-import wave
 import json
 import pickle
 
@@ -25,8 +24,18 @@ def list_songs(client_socket):
     print("Lista de músicas disponíveis:")
     print(songs_list)
 
-def choose_music():
-    pass
+def play_music(client_socket, song_choice):
+    msg = {'service': 'play_music', 'music': f'{song_choice}'}
+    msg_bytes = json.dumps(msg).encode('utf-8')
+    client_socket.send(msg_bytes)
+    play_audio(client_socket, song_choice)
+    print("ESTA AQUI NO PLAY_MUSIC")
+
+def end_connection(client_socket):
+    msg = {'service': 'end_connection'}
+    msg_bytes = json.dumps(msg).encode('utf-8')
+    client_socket.send(msg_bytes)
+    client_socket.close()
 
     
 
@@ -44,11 +53,12 @@ def play_audio(client_socket, song_choice):
     data_of_file = b""
     while True:
         data = client_socket.recv(chunk_size)
+        print(data)
         data_of_file += data
-        if not data:
+        if data == b'':
             break
         stream.write(data)
-    
+        print("ESTA AQUI NO PLAY_AUDIO")
     if len(data_of_file) != 0:
         file = open(f'cache/{song_choice}', 'wb')
         len(data_of_file)
@@ -56,6 +66,7 @@ def play_audio(client_socket, song_choice):
         file.close()
     stream.stop_stream()
     stream.close()
+    print("ESTA AQUI NO PLAY AUDIO 2")
 
 
 def start_client():
@@ -69,7 +80,6 @@ def start_client():
             case '2':
                 list_songs(client_socket)
             case '3':
-                # Escolher uma música para reproduzir
                 song_choice = input("Digite o nome da música que deseja reproduzir: ")
                 songs_cache = os.listdir('cache')
                 if song_choice in songs_cache:
@@ -83,17 +93,15 @@ def start_client():
                     with open(f'cache/{song_choice}', 'rb') as file:
                         while True:
                             data = file.read(chunk_size)
-                            buffer_size = len(data)  # Tamanho atual do buffer
-                            print(f"Tamanho do buffer: {buffer_size}")
                             if not data:
                                     break
                             stream.write(data)
                     
                 else:
-                    client_socket.send(song_choice.encode())
-                    play_audio(client_socket, song_choice)
-                    client_socket.close()
-            case _:
-                break;
+                    play_music(client_socket, song_choice)
+                    print("chegou aqui")
+            case '4':
+                end_connection(client_socket)
+                break
 
 start_client()
