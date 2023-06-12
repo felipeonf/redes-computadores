@@ -5,10 +5,11 @@ import wave
 from _thread import *
 import json
 import pickle
+
+
 devices = []
-
-
 BUFFER_SIZE = 1024
+
 
 def list_devices(client_socket):
     print('devices')
@@ -22,8 +23,8 @@ def list_songs(client_socket):
     songs_str = "\n".join(songs)
     client_socket.send(songs_str.encode())
 
-def play_music_server(client_socket, song_choice):
 
+def play_music_server(client_socket, song_choice):
     if os.path.exists(f"resource/{song_choice}"):
          with wave.open(f"resource/{song_choice}", "rb") as song_file:
             data = song_file.readframes(BUFFER_SIZE)
@@ -35,37 +36,31 @@ def play_music_server(client_socket, song_choice):
             client_socket.send(end_message)
 
 
-
 def handle_client(client_socket, client_address):
     print(f"Conexão estabelecida com o cliente {client_address}")
 
     while True:
-
-        
-        initial_cmd = client_socket.recv(1024).decode()
-        request = json.loads(initial_cmd)
+        command = client_socket.recv(1024).decode()
+        request = json.loads(command)
         print(request)
         if request['service'] == 'list_devices':
             list_devices(client_socket)
-        if request['service'] == 'list_songs':
+        elif request['service'] == 'list_songs':
             list_songs(client_socket)
-        if request['service'] == 'play_music':
+        elif request['service'] == 'play_music':
             music = request['music']
             play_music_server(client_socket, music)
-            
-        if request['service'] == 'end_connection':
+        elif request['service'] == 'end_connection':
             client_socket.close()
             devices.remove(client_address)
             print(f"Conexão encerrada com o cliente {client_address}")
             break
 
-                
-        
+                        
 def start_server():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind(("127.0.0.1", 10000))
     server_socket.listen(5)
-
     print("Servidor iniciado. Aguardando conexões...")
 
     while True:
