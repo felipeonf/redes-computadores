@@ -85,14 +85,14 @@ def end_connection(client_socket):
 
 def start_client():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect(("192.168.1.67", 12345))
+    client_socket.connect(("192.168.1.8", 12345))
     clientname = socket.gethostname()
     client_ip_address = socket.gethostbyname(clientname)
     sock_address = client_socket.getsockname()
     socket_port = sock_address[1]
     print(clientname, client_ip_address, socket_port)
     while True:
-        command = input('1 - Listar dispositivos disponíveis\n2 - Listar músicas disponíveis\n3 - Tocar Música\n4 - Encerrar conexão\n')
+        command = input('1 - Listar dispositivos disponíveis\n2 - Listar músicas disponíveis\n3 - Tocar Música\n4 -  Ficar disponível para reproduzir músicas\n5 - Encerrar Conexão\n')
         match (command):
             case '1':
                 devices = list_devices(client_socket)
@@ -127,6 +127,9 @@ def start_client():
                     print("Música não encontrada na lista de cache local, transmitindo pelo servidor...")
                     play_music_with_server(client_socket, song_choice,device=devices[int(device_choice)])
             case '4':
+                music_choice = client_socket.recv(BUFFER_SIZE)
+                play_music_with_server(client_socket,music_choice)
+            case '5':
                 end_connection(client_socket)
                 break
 

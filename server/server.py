@@ -42,6 +42,7 @@ def play_music_server(client_socket, song_choice):
 def handle_client(client_socket, client_address):
     print(f"Conexão estabelecida com o cliente {client_address}")
 
+
     while True:
         command = client_socket.recv(1024).decode()
         request = json.loads(command)
@@ -54,7 +55,9 @@ def handle_client(client_socket, client_address):
             music = request['music']
             if 'device' in request:
                 ip_device_target = request['device'][0]
-                play_music_server(sockets[ip_device_target], music)
+                song_choice = music.decode()
+                client_socket.send(song_choice)
+                # play_music_server(sockets[ip_device_target], music)
                 pass
             else:
                 play_music_server(client_socket, music)
@@ -70,7 +73,7 @@ def start_server():
     hostname = socket.gethostname()
     ip_address = socket.gethostbyname(hostname)
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(('192.168.1.67', 12345))
+    server_socket.bind(('192.168.1.8', 12345))
     server_socket.listen(5)
     print("Servidor iniciado. Aguardando conexões...")
 
@@ -79,6 +82,6 @@ def start_server():
         print(client_socket)
         sockets[client_address[0]] = client_socket
         devices.append([client_address[0],client_address[1]])
-        start_new_thread(handle_client,(client_socket, client_address))
+        start_new_thread(handle_client,(sockets[client_address[0]], client_address))
 
 start_server()
