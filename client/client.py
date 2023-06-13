@@ -1,5 +1,4 @@
 import socket
-import threading
 import pyaudio
 import os
 import json
@@ -11,6 +10,12 @@ CHANNELS = 2
 FORMAT = pyaudio.paInt16
 RATE = 44100
 
+'''
+ TODO
+ - Pause e retomada
+ - Tocar em bloco de 30 segundos.
+ - Interface web
+'''
 
 def list_devices(client_socket):
     msg = {'service':'list_devices'}
@@ -22,16 +27,15 @@ def list_devices(client_socket):
     
         
 
-
 def list_songs(client_socket):
     msg = {'service':'list_songs'}
     msg_bytes = json.dumps(msg).encode('utf-8')
     client_socket.send(msg_bytes)
     songs_list = client_socket.recv(BUFFER_SIZE).decode()
     print("Lista de músicas disponíveis:")
-    print("")
+    print("-----------------------------------------------")
     print(songs_list)
-    print("")
+    print("-----------------------------------------------")
 
 
 def play_music_with_server(client_socket, song_choice, device = None):
@@ -50,7 +54,7 @@ def play_music_with_server(client_socket, song_choice, device = None):
     while True:
         data = client_socket.recv(BUFFER_SIZE)
         data_of_file += data
-        if data[-3:] == end_message:
+        if data[-3:] == end_message: # Verificando o ultimo trio de bytes da música.
             break
         stream.write(data)
 
@@ -87,37 +91,35 @@ def end_connection(client_socket):
 
 def start_client():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect(("192.168.1.8", 12345))
-    clientname = socket.gethostname()
-    client_ip_address = socket.gethostbyname(clientname)
-    sock_address = client_socket.getpeername()
-    socket_port = sock_address[1]
-    print(clientname, client_ip_address, socket_port)
+    client_socket.connect(("192.168.1.67", 12345))
+    sock_address = client_socket.getsockname()
+    print(sock_address)
+
     while True:
-        command = input('1 - Listar dispositivos disponíveis\n2 - Listar músicas disponíveis\n3 - Tocar Música\n4 -  Ficar disponível para reproduzir músicas\n5 - Encerrar Conexão\n')
+        print("--------------------------------------------------------------------------------------------------")
+        command = input('1 - Listar dispositivos disponíveis\n2 - Listar músicas disponíveis\n3 - Tocar Música\n4 - Ficar disponível para reproduzir músicas\n5 - Encerrar Conexão\n')
+        print("--------------------------------------------------------------------------------------------------")
         match (command):
             case '1':
                 devices = list_devices(client_socket)
                 k = 0
-                print("")
+                print("---------------------------------------")
                 for i in devices:
                     print(f"{k} - Host: {i[0]}, PORT: {i[1]}")
                     k+=1
-                print("")
+                print("---------------------------------------")
             case '2':
                 list_songs(client_socket)
             case '3':
-
                 song_choice = input("Digite o nome da música que deseja reproduzir: ")
                 devices = list_devices(client_socket)
                 k = 0
                 for i in devices:
                     print(f"{k} - Host:{i[0]}, Port:{i[1]}")
                     k += 1
-                device_choice = input("Em qual dispositivo deseja reproduzir (indice) ? ")
-                print(f'escolha de dispositivo {devices[int(device_choice)]}')
-                print(devices[int(device_choice)][0])
-                print(client_ip_address)
+
+                device_choice = input("Digite o índice do dispositivo que deseja reproduzir. ")
+
                 if devices[int(device_choice)][0] == sock_address[0] and devices[int(device_choice)][1] == sock_address[1]:
                     if os.path.isdir("cache"):
                         songs_cache = os.listdir('cache')
@@ -135,7 +137,7 @@ def start_client():
                     play_music_with_server(client_socket, song_choice,device=devices[int(device_choice)])
             case '4':
                 music_choice = client_socket.recv(BUFFER_SIZE).decode()
-                print(f"Reproduzindo {music_choice} ")
+                print(f"Reproduzindo {music_choice}... ")
                 play_music_with_server(client_socket,music_choice)
             case '5':
                 end_connection(client_socket)
