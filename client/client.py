@@ -36,8 +36,9 @@ def play_music_with_server(client_socket, song_choice, device = None):
     if device:
         msg = {'service': 'play_music', 'music': f'{song_choice}','device':device}
         msg_bytes = json.dumps(msg).encode('utf-8')
-    msg = {'service': 'play_music', 'music': f'{song_choice}'}
-    msg_bytes = json.dumps(msg).encode('utf-8')
+    else:
+        msg = {'service': 'play_music', 'music': f'{song_choice}'}
+        msg_bytes = json.dumps(msg).encode('utf-8')
     client_socket.send(msg_bytes)
     
     p = pyaudio.PyAudio()
@@ -84,10 +85,12 @@ def end_connection(client_socket):
 
 def start_client():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect(("192.168.1.8", 12345))
-    clientname = socket.gethostname() #Pegando do host
+    client_socket.connect(("192.168.1.67", 12345))
+    clientname = socket.gethostname()
     client_ip_address = socket.gethostbyname(clientname)
-    print(clientname, client_ip_address)
+    sock_address = client_socket.getsockname()
+    socket_port = sock_address[1]
+    print(clientname, client_ip_address, socket_port)
     while True:
         command = input('1 - Listar dispositivos disponíveis\n2 - Listar músicas disponíveis\n3 - Tocar Música\n4 - Encerrar conexão\n')
         match (command):
@@ -98,16 +101,17 @@ def start_client():
                 list_songs(client_socket)
             case '3':
 
-                song_choice = input("Digite o nome da música que deseja reproduzir (indice): ")
+                song_choice = input("Digite o nome da música que deseja reproduzir: ")
                 devices = list_devices(client_socket)
-                k=0
+                k = 0
                 for i in devices:
                     print(f"{k} - Host:{i[0]}, Port:{i[1]}")
-                    k+=1
-                device_choice = input("Em qual dispotivo deseja reproduzir? ")
+                    k += 1
+                device_choice = input("Em qual dispositivo deseja reproduzir (indice) ? ")
+                print(f'escolha de dispositivo {devices[int(device_choice)]}')
                 print(devices[int(device_choice)][0])
                 print(client_ip_address)
-                if devices[int(device_choice)][0] == client_ip_address:
+                if devices[int(device_choice)][0] == sock_address[0] and devices[int(device_choice)][1] == sock_address[1]:
                     if os.path.isdir("cache"):
                         songs_cache = os.listdir('cache')
                         if song_choice in songs_cache:

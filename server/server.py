@@ -52,9 +52,9 @@ def handle_client(client_socket, client_address):
             list_songs(client_socket)
         elif request['service'] == 'play_music':
             music = request['music']
-            if  'device' in request:
-                ip_device_target = request['device']
-                play_music_server(devices[ip_device_target],music)
+            if 'device' in request:
+                ip_device_target = request['device'][0]
+                play_music_server(sockets[ip_device_target], music)
                 pass
             else:
                 play_music_server(client_socket, music)
@@ -69,9 +69,8 @@ def handle_client(client_socket, client_address):
 def start_server():
     hostname = socket.gethostname()
     ip_address = socket.gethostbyname(hostname)
-    print("192.168.1.8",hostname)
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(('192.168.1.8', 12345))
+    server_socket.bind(('192.168.1.67', 12345))
     server_socket.listen(5)
     print("Servidor iniciado. Aguardando conexões...")
 
