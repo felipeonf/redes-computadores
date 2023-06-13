@@ -69,7 +69,7 @@ def handle_client(client_socket, client_address):
                         
 def start_server():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(('192.168.1.67', 12345))
+    server_socket.bind(('192.168.1.8', 12345))
     server_socket.listen(5)
     print("Servidor iniciado. Aguardando conexões...")
 

@@ -91,7 +91,7 @@ def end_connection(client_socket):
 
 def start_client():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect(("192.168.1.67", 12345))
+    client_socket.connect(("192.168.1.8", 12345))
     sock_address = client_socket.getsockname()
     print(sock_address)
 
