@@ -29,7 +29,9 @@ def list_songs(client_socket):
     client_socket.send(msg_bytes)
     songs_list = client_socket.recv(BUFFER_SIZE).decode()
     print("Lista de músicas disponíveis:")
+    print("")
     print(songs_list)
+    print("")
 
 
 def play_music_with_server(client_socket, song_choice, device = None):
@@ -88,7 +90,7 @@ def start_client():
     client_socket.connect(("192.168.1.8", 12345))
     clientname = socket.gethostname()
     client_ip_address = socket.gethostbyname(clientname)
-    sock_address = client_socket.getsockname()
+    sock_address = client_socket.getpeername()
     socket_port = sock_address[1]
     print(clientname, client_ip_address, socket_port)
     while True:
@@ -96,7 +98,12 @@ def start_client():
         match (command):
             case '1':
                 devices = list_devices(client_socket)
-                print(devices)
+                k = 0
+                print("")
+                for i in devices:
+                    print(f"{k} - Host: {i[0]}, PORT: {i[1]}")
+                    k+=1
+                print("")
             case '2':
                 list_songs(client_socket)
             case '3':
@@ -116,14 +123,19 @@ def start_client():
                         songs_cache = os.listdir('cache')
                         if song_choice in songs_cache:
                             play_music_with_cache(song_choice)
+                        
+                        else:
+                            print("Música não encontrada na lista de cache local, transmitindo pelo servidor...")
+                            play_music_with_server(client_socket, song_choice)  
                     else:
                         print("Música não encontrada na lista de cache local, transmitindo pelo servidor...")
                         play_music_with_server(client_socket, song_choice)
                 else:
-                    pass
+                    print(f"Reproduzindo no dispositivo {device_choice[0]}...")
+                    play_music_with_server(client_socket, song_choice,device=devices[int(device_choice)])
             case '4':
                 music_choice = client_socket.recv(BUFFER_SIZE).decode()
-                print(music_choice)
+                print(f"Reproduzindo {music_choice} ")
                 play_music_with_server(client_socket,music_choice)
             case '5':
                 end_connection(client_socket)
