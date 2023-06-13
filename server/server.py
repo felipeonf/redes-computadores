@@ -54,9 +54,11 @@ def handle_client(client_socket, client_address):
         elif request['service'] == 'play_music':
             music = request['music']
             if 'device' in request:
+                print('here')
                 ip_device_target = request['device'][0]
-                song_choice = music.decode()
-                client_socket.send(song_choice)
+                song_choice = music.encode()
+                socket_target = sockets[ip_device_target]
+                socket_target.send(song_choice)
                 # play_music_server(sockets[ip_device_target], music)
                 pass
             else:

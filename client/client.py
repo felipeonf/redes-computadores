@@ -116,18 +116,14 @@ def start_client():
                         songs_cache = os.listdir('cache')
                         if song_choice in songs_cache:
                             play_music_with_cache(song_choice)
-                        
-                        else:
-                            print("Música não encontrada na lista de cache local, transmitindo pelo servidor...")
-                            play_music_with_server(client_socket, song_choice)  
                     else:
                         print("Música não encontrada na lista de cache local, transmitindo pelo servidor...")
                         play_music_with_server(client_socket, song_choice)
                 else:
-                    print("Música não encontrada na lista de cache local, transmitindo pelo servidor...")
-                    play_music_with_server(client_socket, song_choice,device=devices[int(device_choice)])
+                    pass
             case '4':
-                music_choice = client_socket.recv(BUFFER_SIZE)
+                music_choice = client_socket.recv(BUFFER_SIZE).decode()
+                print(music_choice)
                 play_music_with_server(client_socket,music_choice)
             case '5':
                 end_connection(client_socket)
