@@ -9,10 +9,11 @@ import pickle
 
 devices = []
 BUFFER_SIZE = 1024
-
+sockets = {}
 
 def list_devices(client_socket):
     print('devices')
+    print(sockets)
     client_socket.send(pickle.dumps(devices))
 
 
@@ -58,13 +59,17 @@ def handle_client(client_socket, client_address):
 
                         
 def start_server():
+    hostname = socket.gethostname()
+    ip_address = socket.gethostbyname(hostname)
+    print(ip_address,hostname)
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(("127.0.0.1", 10000))
+    server_socket.bind((ip_address, 10000))
     server_socket.listen(5)
     print("Servidor iniciado. Aguardando conexões...")
 
     while True:
         client_socket, client_address = server_socket.accept()
+        sockets[client_address] = client_socket
         devices.append(client_address)
         start_new_thread(handle_client,(client_socket, client_address))
 
