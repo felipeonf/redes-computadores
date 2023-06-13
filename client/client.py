@@ -18,7 +18,9 @@ def list_devices(client_socket):
     client_socket.send(msg_bytes)
     devices = client_socket.recv(BUFFER_SIZE)
     list_devices = pickle.loads(devices)
-    print(list_devices)
+    return list_devices
+    
+        
 
 
 def list_songs(client_socket):
@@ -30,7 +32,10 @@ def list_songs(client_socket):
     print(songs_list)
 
 
-def play_music_with_server(client_socket, song_choice):
+def play_music_with_server(client_socket, song_choice, device = None):
+    if device:
+        msg = {'service': 'play_music', 'music': f'{song_choice}','device':device}
+        msg_bytes = json.dumps(msg).encode('utf-8')
     msg = {'service': 'play_music', 'music': f'{song_choice}'}
     msg_bytes = json.dumps(msg).encode('utf-8')
     client_socket.send(msg_bytes)
@@ -79,26 +84,44 @@ def end_connection(client_socket):
 
 def start_client():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect(("127.0.0.1", 10000))
+    client_socket.connect(("192.168.1.8", 12345))
+    clientname = socket.gethostname() #Pegando do host
+    client_ip_address = socket.gethostbyname(clientname)
+    print(clientname, client_ip_address)
     while True:
         command = input('1 - Listar dispositivos disponíveis\n2 - Listar músicas disponíveis\n3 - Tocar Música\n4 - Encerrar conexão\n')
         match (command):
             case '1':
-                list_devices(client_socket)
+                devices = list_devices(client_socket)
+                print(devices)
             case '2':
                 list_songs(client_socket)
             case '3':
-                song_choice = input("Digite o nome da música que deseja reproduzir: ")
-                if os.path.isdir("cache"):
-                    songs_cache = os.listdir('cache')
-                    if song_choice in songs_cache:
-                        play_music_with_cache(song_choice)
+
+                song_choice = input("Digite o nome da música que deseja reproduzir (indice): ")
+                devices = list_devices(client_socket)
+                k=0
+                for i in devices:
+                    print(f"{k} - Host:{i[0]}, Port:{i[1]}")
+                    k+=1
+                device_choice = input("Em qual dispotivo deseja reproduzir? ")
+                print(devices[int(device_choice)][0])
+                print(client_ip_address)
+                if devices[int(device_choice)][0] == client_ip_address:
+                    if os.path.isdir("cache"):
+                        songs_cache = os.listdir('cache')
+                        if song_choice in songs_cache:
+                            play_music_with_cache(song_choice)
+                        
+                        else:
+                            print("Música não encontrada na lista de cache local, transmitindo pelo servidor...")
+                            play_music_with_server(client_socket, song_choice)  
                     else:
                         print("Música não encontrada na lista de cache local, transmitindo pelo servidor...")
-                        play_music_with_server(client_socket, song_choice)  
+                        play_music_with_server(client_socket, song_choice)
                 else:
                     print("Música não encontrada na lista de cache local, transmitindo pelo servidor...")
-                    play_music_with_server(client_socket, song_choice)      
+                    play_music_with_server(client_socket, song_choice,device=devices[int(device_choice)])
             case '4':
                 end_connection(client_socket)
                 break
