@@ -59,8 +59,8 @@ def play_music_with_server(client_socket, song_choice, device = None):
         if not is_paused:
             data = client_socket.recv(BUFFER_SIZE)
             data_of_file += data
-            if data[-3:] == end_message:
-                is_finished = True # Verificando o ultimo trio de bytes da música.
+            if data[-3:] == end_message: # Verificando a última trinca de bytes da música.
+                is_finished = True 
                 break
             stream.write(data)
         else:
@@ -79,15 +79,19 @@ def play_music_with_server(client_socket, song_choice, device = None):
 
 
 def play_music_with_cache(song_choice):
+    global is_paused, is_finished
     p = pyaudio.PyAudio()
     stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, output=True)
     print("Reproduzindo do cache...")
     with open(f'cache/{song_choice}', 'rb') as file:
         while True:
-            data = file.read(BUFFER_SIZE)
+            if not is_paused:
+                data = file.read(BUFFER_SIZE)
+                stream.write(data)
             if not data:
+                is_finished = True
                 break
-            stream.write(data)
+            
 
 
 
@@ -104,7 +108,9 @@ def handle_user_input():
             print("Reprodução retomada.")
         else:
             print("Comando inválido.")
-    print("Reprodução concluída. Encerrando o programa.")
+    print("Reprodução concluída.")
+    is_finished = False
+    is_paused = False
 
 def end_connection(client_socket):
     msg = {'service': 'end_connection'}
@@ -148,41 +154,30 @@ def start_client():
                     if os.path.isdir("cache"):
                         songs_cache = os.listdir('cache')
                         if song_choice in songs_cache:
-                            thread_play_music = threading.Thread(target=play_music_with_cache, args=(song_choice,))
-                            thread_play_music.daemon = True
+                            thread_play_music = threading.Thread(target=play_music_with_cache, args=(song_choice,), daemon=True)
                             thread_play_music.start()
-                            user_input_thread = threading.Thread(target=handle_user_input)
-                            user_input_thread.daemon = True
-                            user_input_thread.start()
+                            handle_user_input()
                         
                         else:
                             print("Música não encontrada na lista de cache local, transmitindo pelo servidor...")
-                            thread_play_music = threading.Thread(target=play_music_with_server, args=(client_socket, song_choice,))
-                            thread_play_music.daemon = True
+                            thread_play_music = threading.Thread(target=play_music_with_server, args=(client_socket, song_choice,), daemon=True)
                             thread_play_music.start()
-                            user_input_thread = threading.Thread(target=handle_user_input)
-                            user_input_thread.daemon = True
-                            user_input_thread.start()
+                            handle_user_input()
                     else:
                         print("Música não encontrada na lista de cache local, transmitindo pelo servidor...")
-                        thread_play_music = threading.Thread(target=play_music_with_server, args=(client_socket, song_choice,))
-                        thread_play_music.daemon = True
+                        thread_play_music = threading.Thread(target=play_music_with_server, args=(client_socket, song_choice,), daemon=True)
                         thread_play_music.start()
-                        user_input_thread = threading.Thread(target=handle_user_input)
-                        user_input_thread.daemon = True
-                        user_input_thread.start()
+                        handle_user_input()
                 else:
                     print(f"Reproduzindo no dispositivo {device_choice[0]}...")
-                    thread_play_music = threading.Thread(target=play_music_with_server, args=(client_socket, song_choice, devices[int(device_choice)],))
-                    thread_play_music.daemon = True
+                    thread_play_music = threading.Thread(target=play_music_with_server, args=(client_socket, song_choice, devices[int(device_choice)],), daemon=True)
                     thread_play_music.start()
-                    user_input_thread = threading.Thread(target=handle_user_input)
-                    user_input_thread.daemon = True
-                    user_input_thread.start()
+                    handle_user_input()
             case '4':
                 music_choice = client_socket.recv(BUFFER_SIZE).decode()
                 print(f"Reproduzindo {music_choice}... ")
                 play_music_with_server(client_socket,music_choice)
+                handle_user_input()
             case '5':
                 end_connection(client_socket)
                 break
