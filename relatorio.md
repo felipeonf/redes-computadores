@@ -26,6 +26,7 @@ O  serviço de estar disponível para reproduzir uma música não adota esse pro
 O tamanho padrão de mensagens enviadas é de <b> 1024</b> bytes. <br>
 As requisições são recebidas pelo servidor, decodificadas e interpretadas de acordo com o seu conteúdo, na função <b><code> handle_client() </code>  </b> e, para cada comando específico, é encaminhado para uma função que trata a requisição e envia a resposta ao client já com os dados solicitados anteriormente. <br>
 Ao receber a resposta, o client as decodifica e já as executa dentro das funções próprias.
+Para o encerramento da reprodução, usamos uma codificação em bytes no formato "\nnn" (end_message), assim o client sabe quando a música terminou e segue o resto do procedimento.
 <h1> Limitações e pontos a serem tratados: </h1>
 
 - Não conseguimos implementar corretamente o pause e o retorno da bufferização, acabamos nos confundindo muito e perdendo bastante tempo na questão das threads, temos a intenção de implementar esse requisito em breve.
