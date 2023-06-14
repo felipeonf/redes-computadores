@@ -17,5 +17,5 @@ consumido
 - instalar o python (usamos a vesão 3.10)
 - instalar o pyaudio (use o comando pip install pyaudio)
 - no seu terminal, entre na pasta client e execute python ./client.py para executar a aplicação
-- ao fazer o clone do projeto, é necessário alterar no código o endereço do servidor a ser conectado, que varia de rede para rede, assim é possível rodar a aplicação.
+- ao fazer o clone do projeto, é necessário alterar no código o endereço do servidor a ser conectado(utilize o comando ipconfig no seu terminal para verificar o endereço de ipv4, que varia de rede para rede, assim é possível rodar a aplicação.
 
